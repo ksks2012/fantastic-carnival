@@ -23,7 +23,6 @@ def read_json(filename: str) -> Mapping :
     with open(filename, "r", encoding="utf8") as f:
         data = json.load(f)
 
-    pprint.pprint(data)
     return data
 
 # Writer

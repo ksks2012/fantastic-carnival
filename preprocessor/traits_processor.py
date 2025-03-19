@@ -2,6 +2,7 @@ import json
 import re
 
 from bs4 import BeautifulSoup
+from collections import defaultdict
 from itertools import combinations
 
 from preprocessor import units_processor
@@ -81,85 +82,93 @@ def parse_tft_origins(html_file) -> (dict, dict, dict):
     return traits_dict, units_traits_dict, cost_units_dict
 
 def traits_tracker(traits_data, cost_data, max_combinations=10, combo_size=8):
-    # Filter out traits with only one unit
     valid_traits = {trait: info for trait, info in traits_data.items() if len(info["units"]) > 1}
+    unit_costs = {unit: int(cost) for cost, units in cost_data.items() for unit in units}
+    
+    unit_to_traits = defaultdict(set)
+    min_activations = {}
+    for trait, data in valid_traits.items():
+        min_activations[trait] = min(int(level) for level in data["activations"].keys())
+        for unit in data["units"]:
+            unit_to_traits[unit].add(trait)
+    
+    all_units = sorted(unit_costs.keys(), key=unit_costs.get)
 
-    # Get all unique units and their costs
-    unit_costs = {}
-    for cost, units in cost_data.items():
+    def count_traits(units):
+        trait_counts = defaultdict(int)
         for unit in units:
-            unit_costs[unit] = int(cost)
-
-    all_units = set()
-    for trait in valid_traits.values():
-        all_units.update(trait["units"])
-
-    # Sort units by cost (ascending) to prioritize lower-cost units
-    sorted_units = sorted(all_units, key=lambda x: unit_costs[x])
-
-    # Function to get minimum activation requirement for a trait
-    def get_min_activation(trait_data):
-        activations = trait_data["activations"]
-        return min(int(level) for level in activations.keys())
-
-    # Function to count activated traits for a given combination
-    def count_activated_traits(combo):
-        combo_set = set(combo)
-        activated = set()
-        
-        for trait_name, trait_data in valid_traits.items():
-            trait_units = set(trait_data["units"])
-            units_in_combo = len(trait_units & combo_set)
-            min_activation = get_min_activation(trait_data)
-            
-            if units_in_combo >= min_activation:
-                activated.add(trait_name)
-        
+            for trait in unit_to_traits[unit]:
+                trait_counts[trait] += 1
+        activated = {trait for trait, count in trait_counts.items() if count >= min_activations[trait]}
         return len(activated), activated
 
-    # Calculate total cost of a combination
-    def calculate_total_cost(combo):
-        return sum(unit_costs[unit] for unit in combo)
-
-    # Find combinations, prioritizing lower costs
-    def find_combinations(max_combinations):
-        valid_combinations = []
-        seen_combinations = set()  # To avoid duplicates
+    def greedy_start():
+        selected = []
+        covered_traits = set()
+        available_units = all_units.copy()
         
-        # Generate combinations from sorted units (lower costs first)
-        for combo in combinations(sorted_units, combo_size):
-            combo_tuple = tuple(sorted(combo))  # Sort for consistent comparison
-            if combo_tuple in seen_combinations:
-                continue
-            seen_combinations.add(combo_tuple)
+        while len(selected) < combo_size and available_units:
+            best_unit = max(available_units, 
+                          key=lambda u: len(unit_to_traits[u] - covered_traits), 
+                          default=None)
+            if not best_unit:
+                break
+            selected.append(best_unit)
+            covered_traits.update(unit_to_traits[best_unit])
+            available_units.remove(best_unit)
+        
+        return selected[:combo_size] if len(selected) >= combo_size else None
+
+    def build_combinations():
+        results = []
+        seen = set()
+        initial_combo = greedy_start()
+        
+        if not initial_combo:
+            return results
             
-            count, activated_traits = count_activated_traits(combo)
-            if count >= 8:  # Minimum 8 traits activated
-                total_cost = calculate_total_cost(combo)
-                valid_combinations.append({
-                    "units": list(combo),
-                    "trait_count": count,
-                    "activated_traits": list(activated_traits),
-                    "total_cost": total_cost
-                })
-                if len(valid_combinations) >= max_combinations:
+        def backtrack(index, current_combo):
+            if len(current_combo) == combo_size:
+                trait_count, activated_traits = count_traits(current_combo)
+                if trait_count >= 8:
+                    total_cost = sum(unit_costs[u] for u in current_combo)
+                    result = {
+                        "units": current_combo[:],
+                        "trait_count": trait_count,
+                        "activated_traits": sorted(activated_traits),
+                        "total_cost": total_cost
+                    }
+                    results.append(result)
+                return
+            
+            for i in range(index, len(all_units)):
+                unit = all_units[i]
+                new_combo = current_combo + [unit]
+                combo_tuple = tuple(sorted(new_combo))
+                if combo_tuple in seen:
+                    continue
+                
+                seen.add(combo_tuple)
+                backtrack(i + 1, new_combo)
+                
+                if len(results) >= max_combinations:
                     break
         
-        # Sort by total cost (ascending) and then by trait count (descending)
-        valid_combinations.sort(key=lambda x: (x["total_cost"], -x["trait_count"]))
-        return valid_combinations
+        backtrack(0, [])
+        return sorted(results, key=lambda x: (x["total_cost"], -x["trait_count"]))
 
-    max_results = min(max_combinations, 5)  # Limit to top 5 or max_combinations
-    results = find_combinations(max_combinations=max_combinations)
+    results = build_combinations()
 
-    # Print results
     print(f"Found {len(results)} combinations with {combo_size} units activating 8 or more traits")
-    print(f"\nTop {max_results} combinations (sorted by total cost, then trait count):")
-    for i, combo in enumerate(results[:max_results], 1):
-        print(f"\nCombination {i}:")
-        print(f"Units: {', '.join(combo['units'])}")
-        print(f"Total Cost: {combo['total_cost']}")
-        print(f"Activated Traits ({combo['trait_count']}): {', '.join(combo['activated_traits'])}")
+    if results:
+        print(f"\nTop {max_combinations} combinations (sorted by total cost, then trait count):")
+        for i, combo in enumerate(results[:3], 1):
+            print(f"\nCombination {i}:")
+            print(f"Units: {', '.join(combo['units'])}")
+            print(f"Total Cost: {combo['total_cost']}")
+            print(f"Activated Traits ({combo['trait_count']}): {', '.join(sorted(combo['activated_traits']))}")
+    else:
+        print("No combinations found.")
 
     return results
 
@@ -167,13 +176,7 @@ def main():
     html_file = './var/tft_traits.html'
     
     try:
-        traits_data, units_data, costs_data = parse_tft_origins(html_file)
-        
-        # Print the result in a formatted way
-        import json
-        print(json.dumps(traits_data, indent=4))
-        print(json.dumps(units_data, indent=4))
-        
+        traits_data, units_data, costs_data = parse_tft_origins(html_file)        
     except FileNotFoundError:
         print(f"Error: File '{html_file}' not found")
     except Exception as e:

@@ -1,4 +1,5 @@
 import json
+import time
 
 from preprocessor import traits_processor
 from utils import file_processor
@@ -11,10 +12,9 @@ def main():
         traits_data = file_processor.read_json(traits_file)
         costs_data = file_processor.read_json(costs_file)
 
+        start = time.time()
         result = traits_processor.traits_tracker(traits_data, costs_data)
-        
-        # Print the result in a formatted way
-        print(json.dumps(result, indent=4))
+        print(f"Time taken: {time.time() - start} seconds")
         
     except FileNotFoundError:
         print(f"Error: File '{traits_file}' or '{costs_file}' not found")
