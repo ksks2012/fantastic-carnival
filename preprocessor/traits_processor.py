@@ -80,14 +80,22 @@ def parse_tft_origins(html_file) -> (dict, dict, dict):
 
     return traits_dict, units_traits_dict, cost_units_dict
 
-def traits_tracker(traits_data):
+def traits_tracker(traits_data, cost_data, max_combinations=10, combo_size=8):
     # Filter out traits with only one unit
     valid_traits = {trait: info for trait, info in traits_data.items() if len(info["units"]) > 1}
 
-    # Get all unique units
+    # Get all unique units and their costs
+    unit_costs = {}
+    for cost, units in cost_data.items():
+        for unit in units:
+            unit_costs[unit] = int(cost)
+
     all_units = set()
     for trait in valid_traits.values():
         all_units.update(trait["units"])
+
+    # Sort units by cost (ascending) to prioritize lower-cost units
+    sorted_units = sorted(all_units, key=lambda x: unit_costs[x])
 
     # Function to get minimum activation requirement for a trait
     def get_min_activation(trait_data):
@@ -109,34 +117,48 @@ def traits_tracker(traits_data):
         
         return len(activated), activated
 
-    # Find combinations and limit the number
-    def find_combinations(max_combinations=10):
+    # Calculate total cost of a combination
+    def calculate_total_cost(combo):
+        return sum(unit_costs[unit] for unit in combo)
+
+    # Find combinations, prioritizing lower costs
+    def find_combinations(max_combinations):
         valid_combinations = []
-        for combo in combinations(all_units, 8):
+        seen_combinations = set()  # To avoid duplicates
+        
+        # Generate combinations from sorted units (lower costs first)
+        for combo in combinations(sorted_units, combo_size):
+            combo_tuple = tuple(sorted(combo))  # Sort for consistent comparison
+            if combo_tuple in seen_combinations:
+                continue
+            seen_combinations.add(combo_tuple)
+            
             count, activated_traits = count_activated_traits(combo)
-            if count >= 8:
+            if count >= 8:  # Minimum 8 traits activated
+                total_cost = calculate_total_cost(combo)
                 valid_combinations.append({
                     "units": list(combo),
                     "trait_count": count,
-                    "activated_traits": list(activated_traits)
+                    "activated_traits": list(activated_traits),
+                    "total_cost": total_cost
                 })
-                # Stop when the maximum number is reached
                 if len(valid_combinations) >= max_combinations:
                     break
         
-        # Sort by the number of activated traits (descending)
-        valid_combinations.sort(key=lambda x: x["trait_count"], reverse=True)
+        # Sort by total cost (ascending) and then by trait count (descending)
+        valid_combinations.sort(key=lambda x: (x["total_cost"], -x["trait_count"]))
         return valid_combinations
 
-    max_results = 5  # Set the desired maximum number of combinations
-    results = find_combinations(max_combinations=max_results)
+    max_results = min(max_combinations, 5)  # Limit to top 5 or max_combinations
+    results = find_combinations(max_combinations=max_combinations)
 
     # Print results
-    print(f"Found {len(results)} combinations with 8 units activating 8 or more traits")
-    print("\nTop 5 combinations:")
-    for i, combo in enumerate(results[:5], 1):
+    print(f"Found {len(results)} combinations with {combo_size} units activating 8 or more traits")
+    print(f"\nTop {max_results} combinations (sorted by total cost, then trait count):")
+    for i, combo in enumerate(results[:max_results], 1):
         print(f"\nCombination {i}:")
         print(f"Units: {', '.join(combo['units'])}")
+        print(f"Total Cost: {combo['total_cost']}")
         print(f"Activated Traits ({combo['trait_count']}): {', '.join(combo['activated_traits'])}")
 
     return results
@@ -160,7 +182,7 @@ def main():
     # Save the result to a JSON file
     file_processor.write_json("./var/traits_units.json", traits_data)
     file_processor.write_json("./var/units_traits.json", units_data)
-    file_processor.write_json("./var/cost_units.json", costs_data)
+    file_processor.write_json("./var/costs_units.json", costs_data)
 
 if __name__ == "__main__":
     main()
