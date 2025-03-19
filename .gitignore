@@ -1,0 +1,35 @@
+.DS_Store
+*.pyc
+*~
+.*.swp
+._*
+.project
+.pydevproject
+.settings
+.env
+.vscode
+build
+update.sh
+lib/__init__.py
+rt-sandbox/**
+.rt-deps/**
+*.egg-info/**
+dist/**
+# test_code/**
+.style.yapf
+
+var/**
+.credentials/**
+*.png
+*.log
+*.txt
+*.db3
+*.sqlite
+*.sh
+*.json
+*.html
+*.csv
+
+# temp
+pkg/**
+bak/**
