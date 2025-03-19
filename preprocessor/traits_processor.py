@@ -1,6 +1,8 @@
+import json
 import re
 
 from bs4 import BeautifulSoup
+from itertools import combinations
 
 from preprocessor import units_processor
 from utils import file_processor
@@ -57,6 +59,67 @@ def parse_tft_origins(html_file) -> (dict, dict):
     units_traits_dict = units_processor.parse_traits(traits_dict)
 
     return traits_dict, units_traits_dict
+
+def traits_tracker(traits_data):
+    # Filter out traits with only one unit
+    valid_traits = {trait: info for trait, info in traits_data.items() if len(info["units"]) > 1}
+
+    # Get all unique units
+    all_units = set()
+    for trait in valid_traits.values():
+        all_units.update(trait["units"])
+
+    # Function to get minimum activation requirement for a trait
+    def get_min_activation(trait_data):
+        activations = trait_data["activations"]
+        return min(int(level) for level in activations.keys())
+
+    # Function to count activated traits for a given combination
+    def count_activated_traits(combo):
+        combo_set = set(combo)
+        activated = set()
+        
+        for trait_name, trait_data in valid_traits.items():
+            trait_units = set(trait_data["units"])
+            units_in_combo = len(trait_units & combo_set)
+            min_activation = get_min_activation(trait_data)
+            
+            if units_in_combo >= min_activation:
+                activated.add(trait_name)
+        
+        return len(activated), activated
+
+    # Find combinations and limit the number
+    def find_combinations(max_combinations=10):
+        valid_combinations = []
+        for combo in combinations(all_units, 8):
+            count, activated_traits = count_activated_traits(combo)
+            if count >= 8:
+                valid_combinations.append({
+                    "units": list(combo),
+                    "trait_count": count,
+                    "activated_traits": list(activated_traits)
+                })
+                # Stop when the maximum number is reached
+                if len(valid_combinations) >= max_combinations:
+                    break
+        
+        # Sort by the number of activated traits (descending)
+        valid_combinations.sort(key=lambda x: x["trait_count"], reverse=True)
+        return valid_combinations
+
+    max_results = 5  # Set the desired maximum number of combinations
+    results = find_combinations(max_combinations=max_results)
+
+    # Print results
+    print(f"Found {len(results)} combinations with 8 units activating 8 or more traits")
+    print("\nTop 5 combinations:")
+    for i, combo in enumerate(results[:5], 1):
+        print(f"\nCombination {i}:")
+        print(f"Units: {', '.join(combo['units'])}")
+        print(f"Activated Traits ({combo['trait_count']}): {', '.join(combo['activated_traits'])}")
+
+    return results
 
 def main():
     html_file = './var/tft_traits.html'
