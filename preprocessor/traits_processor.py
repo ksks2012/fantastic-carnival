@@ -7,7 +7,7 @@ from itertools import combinations
 from preprocessor import units_processor
 from utils import file_processor
 
-def parse_tft_origins(html_file) -> (dict, dict):
+def parse_tft_origins(html_file) -> (dict, dict, dict):
     # Read the HTML file
     with open(html_file, 'r', encoding='utf-8') as file:
         soup = BeautifulSoup(file, 'html.parser')
@@ -56,9 +56,29 @@ def parse_tft_origins(html_file) -> (dict, dict):
             "activations": activations
         }
 
+    cost_units_dict = {}
+    # Find all champion sections
+    champions = soup.find_all('div', class_='set-champion')
+
+    for champion in champions:
+        # Extract cost
+        cost_elem = champion.find('div', class_='champion-cost-value')
+        if cost_elem:
+            cost = cost_elem.text.strip()
+            
+            # Extract unit name
+            name_elem = champion.find('h4', class_='champion-name')
+            if name_elem:
+                unit_name = name_elem.text.strip()
+                
+                # Add to dictionary, creating list if cost doesn't exist yet
+                if cost not in cost_units_dict:
+                    cost_units_dict[cost] = []
+                cost_units_dict[cost].append(unit_name)
+
     units_traits_dict = units_processor.parse_traits(traits_dict)
 
-    return traits_dict, units_traits_dict
+    return traits_dict, units_traits_dict, cost_units_dict
 
 def traits_tracker(traits_data):
     # Filter out traits with only one unit
@@ -125,7 +145,7 @@ def main():
     html_file = './var/tft_traits.html'
     
     try:
-        traits_data, units_data = parse_tft_origins(html_file)
+        traits_data, units_data, costs_data = parse_tft_origins(html_file)
         
         # Print the result in a formatted way
         import json
@@ -140,6 +160,7 @@ def main():
     # Save the result to a JSON file
     file_processor.write_json("./var/traits_units.json", traits_data)
     file_processor.write_json("./var/units_traits.json", units_data)
+    file_processor.write_json("./var/cost_units.json", costs_data)
 
 if __name__ == "__main__":
     main()

@@ -32,7 +32,8 @@ def write_yaml(filename: str, data: Mapping):
 
 def write_json(filename: str, data: Mapping):
     with open(filename, "w", encoding="utf8") as fw:
-        jsonString = json.dumps(data, ensure_ascii=False)
+        jsonString = json.dumps(data, ensure_ascii=False, indent=4)
+
         fw.writelines(jsonString)
 
 def write_csv(filename: str, data: list):
