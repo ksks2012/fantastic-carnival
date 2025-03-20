@@ -22,7 +22,7 @@ def get_all_units(combinations):
 def filter_combinations(combinations, selected_units):
     selected_set = set(selected_units)
     print("Selected units for filtering:", selected_set)  # Debugging
-    filtered = [combo for combo in combinations if selected_set.issubset(set(combo["units"]))]
+    filtered = [combo for combo in combinations if selected_set.issubset(combo["units"])]
     print("Filtered combinations count:", len(filtered))  # Debugging
     return filtered
 
@@ -34,6 +34,17 @@ class TraitsFilterApp:
         self.combinations = combinations
         self.all_units, self.translated_units = get_all_units(combinations)  # English and Chinese units
         self.selected_units = set()
+
+        # Convert combinations to list of sets for faster filtering
+        self.combinations = [
+            {
+            "units": set(combo["units"]),
+            "total_cost": combo["total_cost"],
+            "trait_count": combo["trait_count"],
+            "activated_traits": combo["activated_traits"]
+            }
+            for combo in combinations
+        ]
 
         # Unit selection area
         self.unit_frame = ttk.LabelFrame(root, text="Select Your Units", padding=10)
