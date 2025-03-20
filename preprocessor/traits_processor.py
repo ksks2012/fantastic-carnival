@@ -2,7 +2,7 @@ import json
 import re
 
 from bs4 import BeautifulSoup
-from collections import defaultdict
+from collections import defaultdict, Counter
 from itertools import combinations
 
 from preprocessor import units_processor
@@ -171,6 +171,13 @@ def traits_tracker(traits_data, cost_data, max_combinations=10, combo_size=8):
         print("No combinations found.")
 
     return results
+
+def freq_analysis(traits_tracker_result: dict) -> dict:
+    unit_frequency = Counter()
+    for combo in traits_tracker_result:
+        unit_frequency.update(combo["units"])
+    
+    return dict(sorted(unit_frequency.items(), key=lambda x: x[1], reverse=True))
 
 def main():
     html_file = './var/tft_traits.html'
