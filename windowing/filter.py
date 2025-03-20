@@ -28,12 +28,13 @@ def filter_combinations(combinations, selected_units):
 
 # Main window class
 class TraitsFilterApp:
-    def __init__(self, root, combinations):
+    def __init__(self, root, combinations, unit_costs):
         self.root = root
         self.root.title("Traits Combination Filter")
         self.combinations = combinations
         self.all_units, self.translated_units = get_all_units(combinations)  # English and Chinese units
         self.selected_units = set()
+        self.unit_costs = unit_costs
 
         # Convert combinations to list of sets for faster filtering
         self.combinations = [
@@ -50,14 +51,19 @@ class TraitsFilterApp:
         self.unit_frame = ttk.LabelFrame(root, text="Select Your Units", padding=10)
         self.unit_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        self.check_vars = {}
-        for i, unit in enumerate(self.translated_units):
-            var = tk.BooleanVar()
-            chk = ttk.Checkbutton(self.unit_frame, text=unit, variable=var,
-                                command=self.update_selection)
-            chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
-            # Use Chinese names for display, English names as keys
-            self.check_vars[unit] = var
+        self.unit_notebook = ttk.Notebook(self.unit_frame)
+        self.unit_notebook.pack(fill="both", expand=True)
+
+        # Tab 1: Alphabetical Order
+        self.tab_alpha = ttk.Frame(self.unit_notebook)
+        self.unit_notebook.add(self.tab_alpha, text="Alphabetical Order")
+        self.check_vars_alpha = self.create_checkboxes(self.tab_alpha, sorted(self.translated_units), block=False)
+
+        # Tab 2: Cost Order (Grouped)
+        self.tab_cost = ttk.Frame(self.unit_notebook)
+        self.unit_notebook.add(self.tab_cost, text="Cost Order")
+        sorted_by_cost = sorted(self.translated_units, key=lambda x: self.unit_costs[list(unit_translation.keys())[list(unit_translation.values()).index(x)]])
+        self.check_vars_cost = self.create_checkboxes(self.tab_cost, sorted_by_cost, block=True)
 
         # Filter button
         self.filter_button = ttk.Button(root, text="Filter Combinations", command=self.show_results)
@@ -70,9 +76,37 @@ class TraitsFilterApp:
         self.result_text = tk.Text(self.result_frame, height=15, width=80)
         self.result_text.pack(fill="both", expand=True)
 
+
+    def create_checkboxes(self, parent, units, block=False):
+        check_vars = {}
+        if block:  # Display in blocks sorted by cost
+            cost_groups = defaultdict(list)
+            for unit in units:
+                eng_unit = list(unit_translation.keys())[list(unit_translation.values()).index(unit)]
+                cost = self.unit_costs[eng_unit]
+                cost_groups[cost].append(unit)
+
+            for cost in sorted(cost_groups.keys()):
+                frame = ttk.LabelFrame(parent, text=f"{cost} Cost Units", padding=5)
+                frame.pack(fill="x", padx=5, pady=5)
+                for i, unit in enumerate(sorted(cost_groups[cost])):  # Sort alphabetically within each block
+                    var = tk.BooleanVar()
+                    chk = ttk.Checkbutton(frame, text=unit, variable=var, command=self.update_selection)
+                    chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
+                    check_vars[unit] = var
+        else:  # No block display for alphabetical and trait sorting
+            for i, unit in enumerate(units):
+                var = tk.BooleanVar()
+                chk = ttk.Checkbutton(parent, text=unit, variable=var, command=self.update_selection)
+                chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
+                check_vars[unit] = var
+        return check_vars
+
     def update_selection(self):
         # Translate selected Chinese units back to English
-        selected_translated = {unit for unit, var in self.check_vars.items() if var.get()}
+        selected_translated = set()
+        for tab_vars in [self.check_vars_alpha, self.check_vars_cost]:
+            selected_translated.update({unit for unit, var in tab_vars.items() if var.get()})
         self.selected_units = {list(unit_translation.keys())[list(unit_translation.values()).index(unit)] 
                               for unit in selected_translated}
         print("Selected units (Chinese):", selected_translated)  # Debugging
@@ -103,6 +137,7 @@ class TraitsFilterApp:
 # Main program
 if __name__ == "__main__":
     combinations = file_processor.read_json("./var/traits_tracker_result_2000.json")
+    unit_costs = file_processor.read_json("./var/units_cost.json")
     root = tk.Tk()
-    app = TraitsFilterApp(root, combinations)
+    app = TraitsFilterApp(root, combinations, unit_costs)
     root.mainloop()
