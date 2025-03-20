@@ -58,3 +58,8 @@ This project is a Teamfight Tactics (TFT) Traits Tracker Calculator. It helps pl
         "total_cost": 13
     },
 ```
+
+### Add UI for searching
+
+- By costs selector for searching
+- By traits selector for searching
