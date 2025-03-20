@@ -27,7 +27,6 @@ def filter_combinations(combinations, selected_units):
     return filtered
 
 # Main window class
-# Main window class
 class TraitsFilterApp:
     def __init__(self, root, combinations, unit_costs, traits_data):
         self.root = root
@@ -92,9 +91,17 @@ class TraitsFilterApp:
         self.unit_notebook.add(self.tab_traits, text="Trait Order")
         self.create_checkboxes(self.tab_traits, self.translated_units, block="trait")
 
+        # Button frame for Filter and Clear buttons
+        self.button_frame = ttk.Frame(root)
+        self.button_frame.pack(pady=5)
+
         # Filter button
-        self.filter_button = ttk.Button(root, text="Filter Combinations", command=self.show_results)
-        self.filter_button.pack(pady=5)
+        self.filter_button = ttk.Button(self.button_frame, text="Filter Combinations", command=self.show_results)
+        self.filter_button.pack(side="left", padx=5)
+
+        # Clear selection button
+        self.clear_button = ttk.Button(self.button_frame, text="Clear selection", command=self.clear_selection)
+        self.clear_button.pack(side="left", padx=5)
 
         # Result display area
         self.result_frame = ttk.LabelFrame(root, text="Filter Results", padding=10)
@@ -148,6 +155,13 @@ class TraitsFilterApp:
                               for unit in selected_translated}
         print("Selected units (Chinese):", selected_translated)  # Debugging
 
+    def clear_selection(self):
+        # Clear all Checkbox selection states
+        for var in self.check_vars.values():
+            var.set(False)
+        self.selected_units.clear()
+        print("All selections cleared.")  # Debugging
+
     def show_results(self):
         self.result_text.delete(1.0, tk.END)
         if not self.selected_units:
@@ -172,7 +186,7 @@ class TraitsFilterApp:
 
 # Main program
 if __name__ == "__main__":
-    combinations = file_processor.read_json("./var/traits_tracker_result_2000.json")
+    combinations = file_processor.read_json("./var/traits_tracker_result_5000.json")
     unit_costs = file_processor.read_json("./var/units_cost.json")
     traits_data = file_processor.read_json("./var/traits_units_activations.json")
     root = tk.Tk()
