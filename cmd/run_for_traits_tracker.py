@@ -5,7 +5,7 @@ from preprocessor import traits_processor
 from utils import file_processor
 
 def main():
-    traits_file = "./var/traits_units.json"
+    traits_file = "./var/traits_units_activations.json"
     costs_file = "./var/costs_units.json"
     
     try:

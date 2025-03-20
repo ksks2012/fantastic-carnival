@@ -123,7 +123,7 @@ def traits_tracker(traits_data, cost_data, max_combinations=10, combo_size=8):
         results = []
         seen = set()
         initial_combo = greedy_start()
-        
+
         if not initial_combo:
             return results
             
@@ -190,7 +190,7 @@ def main():
         print(f"Error occurred: {str(e)}")
 
     # Save the result to a JSON file
-    file_processor.write_json("./var/traits_units.json", traits_data)
+    file_processor.write_json("./var/traits_units_activations.json", traits_data)
     file_processor.write_json("./var/units_traits.json", units_data)
     file_processor.write_json("./var/costs_units.json", costs_data)
 
