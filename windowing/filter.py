@@ -1,42 +1,38 @@
 import tkinter as tk
+
 from tkinter import ttk
-import json
 from collections import defaultdict
 
 from language.en_zh_tw import unit_translation
 from utils import file_processor
 
-
-# Extract all unique units from combinations
+# Utility Functions
 def get_all_units(combinations):
-    units = set()
-    for combo in combinations:
-        units.update(combo["units"])
+    """Extract and translate all unique units from combinations."""
+    units = set().union(*(combo["units"] for combo in combinations))
     all_units = sorted(units)
-    # Translate unit names from English to Chinese
     translated_units = [unit_translation.get(unit, unit) for unit in all_units]
-    print("All units:", translated_units)  # Debugging
-    return all_units, translated_units  # Return English and Chinese lists
+    print("All units:", translated_units)
+    return all_units, translated_units
 
-# Filter combinations
 def filter_combinations(combinations, selected_units):
+    """Filter combinations containing all selected units."""
     selected_set = set(selected_units)
-    print("Selected units for filtering:", selected_set)  # Debugging
+    print("Selected units for filtering:", selected_set)
     filtered = [combo for combo in combinations if selected_set.issubset(combo["units"])]
-    print("Filtered combinations count:", len(filtered))  # Debugging
+    print("Filtered combinations count:", len(filtered))
     return filtered
 
-# Main window class
+# Main Application Class
 class TraitsFilterApp:
     def __init__(self, root, combinations, unit_costs, traits_data):
         self.root = root
         self.root.title("Traits Combination Filter")
-        self.combinations = combinations
-        self.all_units, self.translated_units = get_all_units(combinations)
-        self.selected_units = set()
         self.unit_costs = unit_costs
         self.traits_data = traits_data
+        self.selected_units = set()
 
+        # Preprocess combinations
         self.combinations = [
             {
                 "units": set(combo["units"]),
@@ -46,12 +42,35 @@ class TraitsFilterApp:
             }
             for combo in combinations
         ]
+        self.all_units, self.translated_units = get_all_units(combinations)
+        self.check_vars = {unit: tk.BooleanVar() for unit in self.translated_units}
 
-        # Main frame to split left and right sections
-        self.main_frame = ttk.Frame(root)
+        # Setup UI
+        self._setup_ui()
+
+    def _setup_ui(self):
+        """Initialize the main UI components."""
+        # Main frame
+        self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(fill="both", expand=True)
 
-        # Left section: Unit selection
+        # Left: Unit selection
+        self._create_unit_selection_area()
+
+        # Right: Selected units display
+        self._create_selected_units_area()
+
+        # Buttons
+        self._create_button_area()
+
+        # Results
+        self._create_result_area()
+
+        # Bind mouse wheel for scrolling
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _create_unit_selection_area(self):
+        """Create the unit selection area with tabs."""
         self.left_frame = ttk.Frame(self.main_frame)
         self.left_frame.pack(side="left", fill="both", expand=True, padx=10, pady=5)
 
@@ -69,62 +88,81 @@ class TraitsFilterApp:
 
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
-
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
         self.unit_notebook = ttk.Notebook(self.scrollable_frame)
         self.unit_notebook.pack(fill="both", expand=True)
 
-        self.check_vars = {unit: tk.BooleanVar() for unit in self.translated_units}
+        # Add tabs
+        self._add_tab(self.unit_notebook, "Alphabetical Order", sorted(self.translated_units), "none")
+        self._add_tab(self.unit_notebook, "Cost Order", sorted(self.translated_units, key=lambda x: self.unit_costs[list(unit_translation.keys())[list(unit_translation.values()).index(x)]]), "cost")
+        self._add_tab(self.unit_notebook, "Trait Order", self.translated_units, "trait")
 
-        # Tab 1: Alphabetical Order
-        self.tab_alpha = ttk.Frame(self.unit_notebook)
-        self.unit_notebook.add(self.tab_alpha, text="Alphabetical Order")
-        self.create_checkboxes(self.tab_alpha, sorted(self.translated_units), block="none")
+    def _add_tab(self, notebook, tab_name, units, block_type):
+        """Add a tab to the notebook with checkboxes."""
+        tab = ttk.Frame(notebook)
+        notebook.add(tab, text=tab_name)
+        self._create_checkboxes(tab, units, block_type)
 
-        # Tab 2: Cost Order (Grouped)
-        self.tab_cost = ttk.Frame(self.unit_notebook)
-        self.unit_notebook.add(self.tab_cost, text="Cost Order")
-        sorted_by_cost = sorted(self.translated_units, key=lambda x: self.unit_costs[list(unit_translation.keys())[list(unit_translation.values()).index(x)]])
-        self.create_checkboxes(self.tab_cost, sorted_by_cost, block="cost")
+    def _create_checkboxes(self, parent, units, block_type):
+        """Create checkboxes based on block type (none, cost, trait)."""
+        if block_type == "cost":
+            cost_groups = defaultdict(list)
+            for unit in units:
+                eng_unit = list(unit_translation.keys())[list(unit_translation.values()).index(unit)]
+                cost_groups[self.unit_costs[eng_unit]].append(unit)
+            for cost in sorted(cost_groups.keys()):
+                frame = ttk.LabelFrame(parent, text=f"{cost} Cost Units", padding=5)
+                frame.pack(fill="x", padx=5, pady=5)
+                self._add_checkboxes_to_frame(frame, sorted(cost_groups[cost]))
+        elif block_type == "trait":
+            trait_groups = defaultdict(list)
+            for trait, info in self.traits_data.items():
+                for eng_unit in info["units"]:
+                    unit = unit_translation.get(eng_unit, eng_unit)
+                    if unit in units:
+                        trait_groups[trait].append(unit)
+            for trait in sorted(trait_groups.keys()):
+                frame = ttk.LabelFrame(parent, text=trait, padding=5)
+                frame.pack(fill="x", padx=5, pady=5)
+                self._add_checkboxes_to_frame(frame, sorted(trait_groups[trait]))
+        else:
+            self._add_checkboxes_to_frame(parent, units)
 
-        # Tab 3: Trait Order (Grouped)
-        self.tab_traits = ttk.Frame(self.unit_notebook)
-        self.unit_notebook.add(self.tab_traits, text="Trait Order")
-        self.create_checkboxes(self.tab_traits, self.translated_units, block="trait")
+    def _add_checkboxes_to_frame(self, frame, units):
+        """Add individual checkboxes to a frame."""
+        for i, unit in enumerate(units):
+            chk = ttk.Checkbutton(frame, text=unit, variable=self.check_vars[unit], command=self.update_selection)
+            chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
 
-        # Right section: Selected units display
+    def _create_selected_units_area(self):
+        """Create the area to display selected units."""
         self.right_frame = ttk.Frame(self.main_frame)
         self.right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=5)
 
-        # Right section: Currently Unit selection
         self.selected_frame = ttk.LabelFrame(self.right_frame, text="Selected Units", padding=10)
         self.selected_frame.pack(fill="both", expand=True)
 
         self.selected_listbox = tk.Listbox(self.selected_frame, height=20, width=30)
         self.selected_listbox.pack(fill="both", expand=True)
 
-        # Button frame
-        self.button_frame = ttk.Frame(root)
+    def _create_button_area(self):
+        """Create the button area."""
+        self.button_frame = ttk.Frame(self.root)
         self.button_frame.pack(pady=5)
 
-        self.filter_button = ttk.Button(self.button_frame, text="Filter Combinations", command=self.show_results)
-        self.filter_button.pack(side="left", padx=5)
+        ttk.Button(self.button_frame, text="Filter Combinations", command=self.show_results).pack(side="left", padx=5)
+        ttk.Button(self.button_frame, text="Clear Selection", command=self.clear_selection).pack(side="left", padx=5)
+        ttk.Button(self.button_frame, text="Copy Selected", command=self.copy_selected_results).pack(side="left", padx=5)
 
-        self.clear_button = ttk.Button(self.button_frame, text="Clear Selection", command=self.clear_selection)
-        self.clear_button.pack(side="left", padx=5)
-
-        # Copy button for results
-        self.copy_button = ttk.Button(self.button_frame, text="Copy Selected", command=self.copy_selected_results)
-        self.copy_button.pack(side="left", padx=5)
-
-        # Result display area with Treeview
-        self.result_frame = ttk.LabelFrame(root, text="Filter Results", padding=10)
+    def _create_result_area(self):
+        """Create the result display area with Treeview."""
+        self.result_frame = ttk.LabelFrame(self.root, text="Filter Results", padding=10)
         self.result_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        # Treeview for structured results
-        self.result_tree = ttk.Treeview(self.result_frame, columns=("Units", "Total Cost", "Trait Count", "Traits"), show="headings", height=15)
+        self.result_tree = ttk.Treeview(self.result_frame, columns=("Units", "Total Cost", "Trait Count", "Traits"), 
+                                        show="headings", height=15)
         self.result_tree.pack(fill="both", expand=True)
 
         self.result_tree.heading("Units", text="Additional Units Needed")
@@ -137,46 +175,12 @@ class TraitsFilterApp:
         self.result_tree.column("Trait Count", width=80, anchor="center")
         self.result_tree.column("Traits", width=200)
 
-        # Enable mouse wheel scrolling for unit selection
-        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
-
     def _on_mousewheel(self, event):
+        """Handle mouse wheel scrolling for the unit selection canvas."""
         self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-    def create_checkboxes(self, parent, units, block="none"):
-        if block == "cost":
-            cost_groups = defaultdict(list)
-            for unit in units:
-                eng_unit = list(unit_translation.keys())[list(unit_translation.values()).index(unit)]
-                cost = self.unit_costs[eng_unit]
-                cost_groups[cost].append(unit)
-
-            for cost in sorted(cost_groups.keys()):
-                frame = ttk.LabelFrame(parent, text=f"{cost} Cost Units", padding=5)
-                frame.pack(fill="x", padx=5, pady=5)
-                for i, unit in enumerate(sorted(cost_groups[cost])):
-                    chk = ttk.Checkbutton(frame, text=unit, variable=self.check_vars[unit], command=self.update_selection)
-                    chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
-        elif block == "trait":
-            trait_groups = defaultdict(list)
-            for trait, info in self.traits_data.items():
-                for eng_unit in info["units"]:
-                    unit = unit_translation.get(eng_unit, eng_unit)
-                    if unit in units:
-                        trait_groups[trait].append(unit)
-
-            for trait in sorted(trait_groups.keys()):
-                frame = ttk.LabelFrame(parent, text=trait, padding=5)
-                frame.pack(fill="x", padx=5, pady=5)
-                for i, unit in enumerate(sorted(trait_groups[trait])):
-                    chk = ttk.Checkbutton(frame, text=unit, variable=self.check_vars[unit], command=self.update_selection)
-                    chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
-        else:
-            for i, unit in enumerate(units):
-                chk = ttk.Checkbutton(parent, text=unit, variable=self.check_vars[unit], command=self.update_selection)
-                chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
-
     def update_selection(self):
+        """Update the selected units and refresh the listbox."""
         selected_translated = {unit for unit, var in self.check_vars.items() if var.get()}
         self.selected_units = {list(unit_translation.keys())[list(unit_translation.values()).index(unit)] 
                               for unit in selected_translated}
@@ -187,6 +191,7 @@ class TraitsFilterApp:
             self.selected_listbox.insert(tk.END, unit)
 
     def clear_selection(self):
+        """Clear all selections and refresh the listbox."""
         for var in self.check_vars.values():
             var.set(False)
         self.selected_units.clear()
@@ -194,9 +199,8 @@ class TraitsFilterApp:
         print("All selections cleared.")
 
     def show_results(self):
-        # Clear previous results
-        for item in self.result_tree.get_children():
-            self.result_tree.delete(item)
+        """Display filtered results in the Treeview, showing only additional units needed."""
+        self.result_tree.delete(*self.result_tree.get_children())
 
         if not self.selected_units:
             self.result_tree.insert("", "end", values=("Please select at least one unit.", "", "", ""))
@@ -207,24 +211,18 @@ class TraitsFilterApp:
             self.result_tree.insert("", "end", values=("No combinations found.", "", "", ""))
             return
 
-        # Sort by total cost (ascending) and trait count (descending)
         filtered.sort(key=lambda x: (x["total_cost"], -x["trait_count"]))
-
-        # Insert header with count
         self.result_tree.insert("", "end", values=(f"Found {len(filtered)} combinations", "", "", ""))
 
-        # Insert top 10 results, showing only additional units needed
         for i, combo in enumerate(filtered[:10], 1):
-            # Filter out already selected units (in English)
             additional_units = combo["units"] - self.selected_units
-            # Translate additional units to Chinese
             translated_additional_units = [unit_translation.get(unit, unit) for unit in additional_units]
             units_str = ", ".join(translated_additional_units) if translated_additional_units else "None"
             traits_str = ", ".join(combo["activated_traits"])
             self.result_tree.insert("", "end", values=(units_str, combo["total_cost"], combo["trait_count"], traits_str))
 
     def copy_selected_results(self):
-        # Copy selected rows from Treeview to clipboard
+        """Copy selected results from Treeview to clipboard."""
         selected_items = self.result_tree.selection()
         if not selected_items:
             return
