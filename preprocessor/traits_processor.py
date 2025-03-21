@@ -111,7 +111,7 @@ def traits_tracker(traits_data, cost_data, max_combinations=10, combo_size=8):
             best_unit = max(available_units, 
                           key=lambda u: len(unit_to_traits[u] - covered_traits), 
                           default=None)
-            if not best_unit:
+            if not best_unit or len(unit_to_traits[best_unit] - covered_traits) == 0:
                 break
             selected.append(best_unit)
             covered_traits.update(unit_to_traits[best_unit])
@@ -121,52 +121,57 @@ def traits_tracker(traits_data, cost_data, max_combinations=10, combo_size=8):
 
     def build_combinations():
         results = []
-        seen = set()
         initial_combo = greedy_start()
-
         if not initial_combo:
             return results
-            
-        def backtrack(index, current_combo):
+
+        # Use generator to produce combinations one by one
+        def generate_combinations(index, current_combo, current_traits):
             if len(current_combo) == combo_size:
                 trait_count, activated_traits = count_traits(current_combo)
                 if trait_count >= 8:
                     total_cost = sum(unit_costs[u] for u in current_combo)
-                    result = {
+                    yield {
                         "units": current_combo[:],
                         "trait_count": trait_count,
                         "activated_traits": sorted(activated_traits),
                         "total_cost": total_cost
                     }
-                    results.append(result)
                 return
             
+            # Pruning: if the current number of traits + the maximum number of traits that can be contributed by the remaining selectable units < 8, stop
+            remaining_slots = combo_size - len(current_combo)
+            potential_traits = len(set().union(*(unit_to_traits[all_units[i]] for i in range(index, len(all_units)))) - current_traits)
+            if len(current_traits) + potential_traits < 8:
+                return
+
             for i in range(index, len(all_units)):
                 unit = all_units[i]
-                new_combo = current_combo + [unit]
-                combo_tuple = tuple(sorted(new_combo))
-                if combo_tuple in seen:
-                    continue
-                
-                seen.add(combo_tuple)
-                backtrack(i + 1, new_combo)
-                
+                new_traits = unit_to_traits[unit]
+                current_combo.append(unit)
+                yield from generate_combinations(i + 1, current_combo, current_traits | new_traits)
+                current_combo.pop()
                 if len(results) >= max_combinations:
                     break
+
+        # Collect results
+        for combo in generate_combinations(0, [], set()):
+            results.append(combo)
+            if len(results) >= max_combinations:
+                break
         
-        backtrack(0, [])
         return sorted(results, key=lambda x: (x["total_cost"], -x["trait_count"]))
 
     results = build_combinations()
 
     print(f"Found {len(results)} combinations with {combo_size} units activating 8 or more traits")
     if results:
-        print(f"\nTop {max_combinations} combinations (sorted by total cost, then trait count):")
+        print(f"\nTop {min(max_combinations, 3)} combinations (sorted by total cost, then trait count):")
         for i, combo in enumerate(results[:3], 1):
             print(f"\nCombination {i}:")
             print(f"Units: {', '.join(combo['units'])}")
             print(f"Total Cost: {combo['total_cost']}")
-            print(f"Activated Traits ({combo['trait_count']}): {', '.join(sorted(combo['activated_traits']))}")
+            print(f"Activated Traits ({combo['trait_count']}): {', '.join(combo['activated_traits'])}")
     else:
         print("No combinations found.")
 
