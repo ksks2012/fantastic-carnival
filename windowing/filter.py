@@ -48,11 +48,17 @@ class TraitsFilterApp:
             for combo in combinations
         ]
 
-        # Unit selection area with scrollbar
-        self.unit_frame = ttk.LabelFrame(root, text="Select Your Units", padding=10)
-        self.unit_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        # Main frame to split left and right sections
+        self.main_frame = ttk.Frame(root)
+        self.main_frame.pack(fill="both", expand=True)
 
-        # Create a canvas and scrollbar
+        # Left section: Unit selection with scrollbar
+        self.left_frame = ttk.Frame(self.main_frame)
+        self.left_frame.pack(side="left", fill="both", expand=True, padx=10, pady=5)
+
+        self.unit_frame = ttk.LabelFrame(self.left_frame, text="Select Your Units", padding=10)
+        self.unit_frame.pack(fill="both", expand=True)
+
         self.canvas = tk.Canvas(self.unit_frame)
         self.scrollbar = ttk.Scrollbar(self.unit_frame, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
@@ -68,11 +74,9 @@ class TraitsFilterApp:
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
-        # Notebook inside scrollable frame
         self.unit_notebook = ttk.Notebook(self.scrollable_frame)
         self.unit_notebook.pack(fill="both", expand=True)
 
-        # Shared variable dictionary for all tabs
         self.check_vars = {unit: tk.BooleanVar() for unit in self.translated_units}
 
         # Tab 1: Alphabetical Order
@@ -91,15 +95,23 @@ class TraitsFilterApp:
         self.unit_notebook.add(self.tab_traits, text="Trait Order")
         self.create_checkboxes(self.tab_traits, self.translated_units, block="trait")
 
+        # Right section: Selected units display
+        self.right_frame = ttk.Frame(self.main_frame)
+        self.right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=5)
+
+        self.selected_frame = ttk.LabelFrame(self.right_frame, text="Currently selected unit", padding=10)
+        self.selected_frame.pack(fill="both", expand=True)
+
+        self.selected_listbox = tk.Listbox(self.selected_frame, height=20, width=30)
+        self.selected_listbox.pack(fill="both", expand=True)
+
         # Button frame for Filter and Clear buttons
         self.button_frame = ttk.Frame(root)
         self.button_frame.pack(pady=5)
 
-        # Filter button
         self.filter_button = ttk.Button(self.button_frame, text="Filter Combinations", command=self.show_results)
         self.filter_button.pack(side="left", padx=5)
 
-        # Clear selection button
         self.clear_button = ttk.Button(self.button_frame, text="Clear selection", command=self.clear_selection)
         self.clear_button.pack(side="left", padx=5)
 
@@ -110,14 +122,14 @@ class TraitsFilterApp:
         self.result_text = tk.Text(self.result_frame, height=15, width=80)
         self.result_text.pack(fill="both", expand=True)
 
-        # Enable mouse wheel scrolling
+        # Enable mouse wheel scrolling for unit selection
         self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
 
     def _on_mousewheel(self, event):
         self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def create_checkboxes(self, parent, units, block="none"):
-        if block == "cost":  # Display in blocks sorted by cost
+        if block == "cost":
             cost_groups = defaultdict(list)
             for unit in units:
                 eng_unit = list(unit_translation.keys())[list(unit_translation.values()).index(unit)]
@@ -130,7 +142,7 @@ class TraitsFilterApp:
                 for i, unit in enumerate(sorted(cost_groups[cost])):
                     chk = ttk.Checkbutton(frame, text=unit, variable=self.check_vars[unit], command=self.update_selection)
                     chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
-        elif block == "trait":  # Display in blocks sorted by traits
+        elif block == "trait":
             trait_groups = defaultdict(list)
             for trait, info in self.traits_data.items():
                 for eng_unit in info["units"]:
@@ -144,7 +156,7 @@ class TraitsFilterApp:
                 for i, unit in enumerate(sorted(trait_groups[trait])):
                     chk = ttk.Checkbutton(frame, text=unit, variable=self.check_vars[unit], command=self.update_selection)
                     chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
-        else:  # No block display (alphabetical order)
+        else:
             for i, unit in enumerate(units):
                 chk = ttk.Checkbutton(parent, text=unit, variable=self.check_vars[unit], command=self.update_selection)
                 chk.grid(row=i // 5, column=i % 5, sticky="w", padx=5, pady=2)
@@ -155,11 +167,16 @@ class TraitsFilterApp:
                               for unit in selected_translated}
         print("Selected units (Chinese):", selected_translated)  # Debugging
 
+        # Update the right-side selection list
+        self.selected_listbox.delete(0, tk.END)  # Clear the current list
+        for unit in sorted(selected_translated):  # Sort alphabetically
+            self.selected_listbox.insert(tk.END, unit)
+
     def clear_selection(self):
-        # Clear all Checkbox selection states
         for var in self.check_vars.values():
             var.set(False)
         self.selected_units.clear()
+        self.selected_listbox.delete(0, tk.END)  # Clear the list
         print("All selections cleared.")  # Debugging
 
     def show_results(self):
@@ -186,7 +203,7 @@ class TraitsFilterApp:
 
 # Main program
 if __name__ == "__main__":
-    combinations = file_processor.read_json("./var/traits_tracker_result_5000.json")
+    combinations = file_processor.read_json("./var/traits_tracker_result_15000.json")
     unit_costs = file_processor.read_json("./var/units_cost.json")
     traits_data = file_processor.read_json("./var/traits_units_activations.json")
     root = tk.Tk()
