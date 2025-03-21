@@ -117,7 +117,7 @@ class TraitsFilterApp:
 
         # Copy button for results
         self.copy_button = ttk.Button(self.button_frame, text="Copy Selected", command=self.copy_selected_results)
-        self.copy_button.pack(side="left", pady=5)
+        self.copy_button.pack(side="left", padx=5)
 
         # Result display area with Treeview
         self.result_frame = ttk.LabelFrame(root, text="Filter Results", padding=10)
@@ -127,7 +127,7 @@ class TraitsFilterApp:
         self.result_tree = ttk.Treeview(self.result_frame, columns=("Units", "Total Cost", "Trait Count", "Traits"), show="headings", height=15)
         self.result_tree.pack(fill="both", expand=True)
 
-        self.result_tree.heading("Units", text="Units")
+        self.result_tree.heading("Units", text="Additional Units Needed")
         self.result_tree.heading("Total Cost", text="Total Cost")
         self.result_tree.heading("Trait Count", text="Trait Count")
         self.result_tree.heading("Traits", text="Activated Traits")
@@ -136,7 +136,6 @@ class TraitsFilterApp:
         self.result_tree.column("Total Cost", width=80, anchor="center")
         self.result_tree.column("Trait Count", width=80, anchor="center")
         self.result_tree.column("Traits", width=200)
-
 
         # Enable mouse wheel scrolling for unit selection
         self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
@@ -214,10 +213,13 @@ class TraitsFilterApp:
         # Insert header with count
         self.result_tree.insert("", "end", values=(f"Found {len(filtered)} combinations", "", "", ""))
 
-        # Insert top 10 results
+        # Insert top 10 results, showing only additional units needed
         for i, combo in enumerate(filtered[:10], 1):
-            translated_units = [unit_translation.get(unit, unit) for unit in combo["units"]]
-            units_str = ", ".join(translated_units)
+            # Filter out already selected units (in English)
+            additional_units = combo["units"] - self.selected_units
+            # Translate additional units to Chinese
+            translated_additional_units = [unit_translation.get(unit, unit) for unit in additional_units]
+            units_str = ", ".join(translated_additional_units) if translated_additional_units else "None"
             traits_str = ", ".join(combo["activated_traits"])
             self.result_tree.insert("", "end", values=(units_str, combo["total_cost"], combo["trait_count"], traits_str))
 
@@ -230,7 +232,7 @@ class TraitsFilterApp:
         clipboard_text = ""
         for item in selected_items:
             values = self.result_tree.item(item, "values")
-            clipboard_text += f"Units: {values[0]}\nTotal Cost: {values[1]}\nTrait Count: {values[2]}\nTraits: {values[3]}\n\n"
+            clipboard_text += f"Additional Units Needed: {values[0]}\nTotal Cost: {values[1]}\nTrait Count: {values[2]}\nTraits: {values[3]}\n\n"
 
         self.root.clipboard_clear()
         self.root.clipboard_append(clipboard_text)
