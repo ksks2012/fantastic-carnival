@@ -37,7 +37,6 @@ class TraitsFilterApp:
         self.unit_costs = unit_costs
         self.traits_data = traits_data
 
-        # Convert combinations to list of sets for faster filtering
         self.combinations = [
             {
                 "units": set(combo["units"]),
@@ -52,7 +51,7 @@ class TraitsFilterApp:
         self.main_frame = ttk.Frame(root)
         self.main_frame.pack(fill="both", expand=True)
 
-        # Left section: Unit selection with scrollbar
+        # Left section: Unit selection
         self.left_frame = ttk.Frame(self.main_frame)
         self.left_frame.pack(side="left", fill="both", expand=True, padx=10, pady=5)
 
@@ -99,28 +98,45 @@ class TraitsFilterApp:
         self.right_frame = ttk.Frame(self.main_frame)
         self.right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=5)
 
-        self.selected_frame = ttk.LabelFrame(self.right_frame, text="Currently selected unit", padding=10)
+        # Right section: Currently Unit selection
+        self.selected_frame = ttk.LabelFrame(self.right_frame, text="Selected Units", padding=10)
         self.selected_frame.pack(fill="both", expand=True)
 
         self.selected_listbox = tk.Listbox(self.selected_frame, height=20, width=30)
         self.selected_listbox.pack(fill="both", expand=True)
 
-        # Button frame for Filter and Clear buttons
+        # Button frame
         self.button_frame = ttk.Frame(root)
         self.button_frame.pack(pady=5)
 
         self.filter_button = ttk.Button(self.button_frame, text="Filter Combinations", command=self.show_results)
         self.filter_button.pack(side="left", padx=5)
 
-        self.clear_button = ttk.Button(self.button_frame, text="Clear selection", command=self.clear_selection)
+        self.clear_button = ttk.Button(self.button_frame, text="Clear Selection", command=self.clear_selection)
         self.clear_button.pack(side="left", padx=5)
 
-        # Result display area
+        # Copy button for results
+        self.copy_button = ttk.Button(self.button_frame, text="Copy Selected", command=self.copy_selected_results)
+        self.copy_button.pack(side="left", pady=5)
+
+        # Result display area with Treeview
         self.result_frame = ttk.LabelFrame(root, text="Filter Results", padding=10)
         self.result_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        self.result_text = tk.Text(self.result_frame, height=15, width=80)
-        self.result_text.pack(fill="both", expand=True)
+        # Treeview for structured results
+        self.result_tree = ttk.Treeview(self.result_frame, columns=("Units", "Total Cost", "Trait Count", "Traits"), show="headings", height=15)
+        self.result_tree.pack(fill="both", expand=True)
+
+        self.result_tree.heading("Units", text="Units")
+        self.result_tree.heading("Total Cost", text="Total Cost")
+        self.result_tree.heading("Trait Count", text="Trait Count")
+        self.result_tree.heading("Traits", text="Activated Traits")
+
+        self.result_tree.column("Units", width=300)
+        self.result_tree.column("Total Cost", width=80, anchor="center")
+        self.result_tree.column("Trait Count", width=80, anchor="center")
+        self.result_tree.column("Traits", width=200)
+
 
         # Enable mouse wheel scrolling for unit selection
         self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
@@ -165,41 +181,61 @@ class TraitsFilterApp:
         selected_translated = {unit for unit, var in self.check_vars.items() if var.get()}
         self.selected_units = {list(unit_translation.keys())[list(unit_translation.values()).index(unit)] 
                               for unit in selected_translated}
-        print("Selected units (Chinese):", selected_translated)  # Debugging
+        print("Selected units (Chinese):", selected_translated)
 
-        # Update the right-side selection list
-        self.selected_listbox.delete(0, tk.END)  # Clear the current list
-        for unit in sorted(selected_translated):  # Sort alphabetically
+        self.selected_listbox.delete(0, tk.END)
+        for unit in sorted(selected_translated):
             self.selected_listbox.insert(tk.END, unit)
 
     def clear_selection(self):
         for var in self.check_vars.values():
             var.set(False)
         self.selected_units.clear()
-        self.selected_listbox.delete(0, tk.END)  # Clear the list
-        print("All selections cleared.")  # Debugging
+        self.selected_listbox.delete(0, tk.END)
+        print("All selections cleared.")
 
     def show_results(self):
-        self.result_text.delete(1.0, tk.END)
+        # Clear previous results
+        for item in self.result_tree.get_children():
+            self.result_tree.delete(item)
+
         if not self.selected_units:
-            self.result_text.insert(tk.END, "Please select at least one unit.")
+            self.result_tree.insert("", "end", values=("Please select at least one unit.", "", "", ""))
             return
 
         filtered = filter_combinations(self.combinations, self.selected_units)
         if not filtered:
-            self.result_text.insert(tk.END, "No combinations found.")
+            self.result_tree.insert("", "end", values=("No combinations found.", "", "", ""))
             return
 
+        # Sort by total cost (ascending) and trait count (descending)
         filtered.sort(key=lambda x: (x["total_cost"], -x["trait_count"]))
-        
-        self.result_text.insert(tk.END, f"Found {len(filtered)} combinations:\n\n")
+
+        # Insert header with count
+        self.result_tree.insert("", "end", values=(f"Found {len(filtered)} combinations", "", "", ""))
+
+        # Insert top 10 results
         for i, combo in enumerate(filtered[:10], 1):
             translated_units = [unit_translation.get(unit, unit) for unit in combo["units"]]
-            text = (f"Combination {i}:\n"
-                   f"Units: {', '.join(translated_units)}\n"
-                   f"Total Cost: {combo['total_cost']}\n"
-                   f"Traits ({combo['trait_count']}): {', '.join(combo['activated_traits'])}\n\n")
-            self.result_text.insert(tk.END, text)
+            units_str = ", ".join(translated_units)
+            traits_str = ", ".join(combo["activated_traits"])
+            self.result_tree.insert("", "end", values=(units_str, combo["total_cost"], combo["trait_count"], traits_str))
+
+    def copy_selected_results(self):
+        # Copy selected rows from Treeview to clipboard
+        selected_items = self.result_tree.selection()
+        if not selected_items:
+            return
+
+        clipboard_text = ""
+        for item in selected_items:
+            values = self.result_tree.item(item, "values")
+            clipboard_text += f"Units: {values[0]}\nTotal Cost: {values[1]}\nTrait Count: {values[2]}\nTraits: {values[3]}\n\n"
+
+        self.root.clipboard_clear()
+        self.root.clipboard_append(clipboard_text)
+        print("Selected results copied to clipboard.")
+
 
 # Main program
 if __name__ == "__main__":
@@ -207,6 +243,6 @@ if __name__ == "__main__":
     unit_costs = file_processor.read_json("./var/units_cost.json")
     traits_data = file_processor.read_json("./var/traits_units_activations.json")
     root = tk.Tk()
-    root.geometry("800x800")
+    root.geometry("1000x800")
     app = TraitsFilterApp(root, combinations, unit_costs, traits_data)
     root.mainloop()
