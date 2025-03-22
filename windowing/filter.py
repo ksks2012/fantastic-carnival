@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import tkinter as tk
+import yaml
 
 from tkinter import ttk
 from collections import defaultdict
