@@ -60,3 +60,48 @@ unit_translation = {
     "Viego": "維爾戈",
     "Zac": "札克"
 }
+
+ui_translations = {
+    "English": {
+        "Traits Combination Filter": "Traits Combination Filter",
+        "Select Your Units": "Select Your Units",
+        "Alphabetical Order": "Alphabetical Order",
+        "Cost Order": "Cost Order",
+        "Trait Order": "Trait Order",
+        "Selected Units": "Selected Units",
+        "Filter Combinations": "Filter Combinations",
+        "Clear Selection": "Clear Selection",
+        "Copy Selected": "Copy Selected",
+        "Filter Results": "Filter Results",
+        "Additional Units Needed": "Additional Units Needed",
+        "Total Cost": "Total Cost",
+        "Trait Count": "Trait Count",
+        "Activated Traits": "Activated Traits",
+        "Please select at least one unit.": "Please select at least one unit.",
+        "No combinations found.": "No combinations found.",
+        "Found": "Found",
+        "combinations": "combinations",
+        "None": "None"
+    },
+    "Chinese": {
+        "Traits Combination Filter": "特質組合過濾器",
+        "Select Your Units": "選擇你的單位",
+        "Alphabetical Order": "字母順序",
+        "Cost Order": "費用順序",
+        "Trait Order": "特質順序",
+        "Selected Units": "已選單位",
+        "Filter Combinations": "過濾組合",
+        "Clear Selection": "清空選擇",
+        "Copy Selected": "複製已選",
+        "Filter Results": "過濾結果",
+        "Additional Units Needed": "額外需要的單位",
+        "Total Cost": "總費用",
+        "Trait Count": "特質數量",
+        "Activated Traits": "啟動的特質",
+        "Please select at least one unit.": "請至少選擇一個單位。",
+        "No combinations found.": "未找到組合。",
+        "Found": "找到",
+        "combinations": "個組合",
+        "None": "無"
+    }
+}
