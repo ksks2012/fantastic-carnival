@@ -1,0 +1,354 @@
+{
+    "Anima Squad": {
+        "units": [
+            "Aurora",
+            "Illaoi",
+            "Leona",
+            "Seraphine",
+            "Sylas",
+            "Vayne",
+            "Xayah",
+            "Yuumi"
+        ],
+        "activations": {
+            "3": "10 Armor & MR, 5% DA",
+            "5": "20 Armor & MR, 10% DA",
+            "7": "30 Armor & MR, 15% DA",
+            "10": "0 Armor & MR, 50% DA"
+        }
+    },
+    "BoomBots": {
+        "units": [
+            "Chogath",
+            "Fiddlesticks",
+            "Kogmaw",
+            "Skarner",
+            "Urgot"
+        ],
+        "activations": {
+            "2": "150 magic damage",
+            "4": "330 magic damage",
+            "6": "Fire two missiles, each dealing 200 magic damage"
+        }
+    },
+    "Cyberboss": {
+        "units": [
+            "Kobuko",
+            "Poppy",
+            "Veigar",
+            "Ziggs"
+        ],
+        "activations": {
+            "2": "18% Health, 15 AP",
+            "3": "25% Health, 25 AP",
+            "4": "All Cyberbosses upgrade. Your strongest Cyberboss instead gets 33% Health and 30 AP"
+        }
+    },
+    "Cypher": {
+        "units": [
+            "Draven",
+            "Galio",
+            "Leblanc",
+            "Vi",
+            "Zed"
+        ],
+        "activations": {
+            "3": "1x Intel, 25% AD & AP",
+            "4": "1.50x Intel, 0% AD & AP",
+            "5": "2x Intel, 0% AD & AP"
+        }
+    },
+    "Divinicorp": {
+        "units": [
+            "Gragas",
+            "Morgana",
+            "Renekton",
+            "Rhaast",
+            "Senna",
+            "Vex"
+        ],
+        "activations": {
+            "1": "00% bonus.",
+            "2": "110% bonus.",
+            "3": "125% bonus.",
+            "4": "15% bonus.",
+            "5": "16% bonus.",
+            "7": "200% bonus."
+        }
+    },
+    "Exotech": {
+        "units": [
+            "Jax",
+            "Jhin",
+            "Mordekaiser",
+            "Naafiri",
+            "Sejuani",
+            "Varus",
+            "Zeri"
+        ],
+        "activations": {
+            "3": "0 Health, 2% AS, 1 Item",
+            "5": "110 Health, 3% AS, 2 Items",
+            "7": "200 Health, % AS, 3 Items",
+            "10": "500 Health, 40% AS, ALL Exotech Items"
+        }
+    },
+    "God of the Net": {
+        "units": [
+            "Garen"
+        ],
+        "activations": {
+            "1": "After 2 player combats, open an Armory of Trait Mods that permanently reprogram a champion to benefit from a trait (but not contribute). Every time you get a Trait Mod, the next one requires additional round. Champions can only have one Trait Mod."
+        }
+    },
+    "Golden Ox": {
+        "units": [
+            "Alistar",
+            "Annie",
+            "Aphelios",
+            "Graves",
+            "Jarvan IV",
+            "Viego"
+        ],
+        "activations": {
+            "2": "18% DA, 0% gold",
+            "4": "20% DA, 30% gold",
+            "6": "22% DA, 50% loot, 8% chance loot is a component"
+        }
+    },
+    "Nitro": {
+        "units": [
+            "Elise",
+            "Kindred",
+            "Nidalee",
+            "Shyvana"
+        ],
+        "activations": {
+            "3": "Summon R-080T!",
+            "4": "Fire a giant laser!"
+        }
+    },
+    "Overlord": {
+        "units": [
+            "Renekton"
+        ],
+        "activations": {
+            "1": "The Overlord takes a bite out of the unit in the hex behind him, dealing 40% of their max Health as true damage. He gains 40% of their Health and 33% of their Attack Damage."
+        }
+    },
+    "Soul Killer": {
+        "units": [
+            "Viego"
+        ],
+        "activations": {
+            "1": "Gain a hologram copy of the highest cost enemy Viego helped kill last round. It has 600/900/3000 Health, deals 30%/40%/200% damage, and has recommended item."
+        }
+    },
+    "Street Demon": {
+        "units": [
+            "Brand",
+            "Dr Mundo",
+            "Ekko",
+            "Jinx",
+            "Neeko",
+            "Rengar",
+            "Samira",
+            "Zyra"
+        ],
+        "activations": {
+            "3": "6% Health, 6 AP, 6% AD",
+            "5": "10% Health, 10 AP, 10% AD",
+            "7": "15% Health, 15 AP, 15% AD",
+            "10": "25% Health, 25 AP, 25% AD"
+        }
+    },
+    "Syndicate": {
+        "units": [
+            "Braum",
+            "Darius",
+            "Miss Fortune",
+            "Shaco",
+            "Twisted Fate"
+        ],
+        "activations": {
+            "3": "100 Health, 5% DA, 1 Kingpin",
+            "5": "40 Health, 20% DA, 2 Kingpins",
+            "7": "600 Health, 30% DA, Upgrade Kingpin effect"
+        }
+    },
+    "Virus": {
+        "units": [
+            "Zac"
+        ],
+        "activations": {
+            "1": "The Virus infects your shop with a 0% chance to spawn a bloblet. When purchased, it merges and increases the strongest Zac's max Health by 3% and Ability Power by 5. Total Bloblets:"
+        }
+    },
+    "A.M.P.": {
+        "units": [
+            "Annie",
+            "Naafiri",
+            "Nidalee",
+            "Samira",
+            "Yuumi"
+        ],
+        "activations": {
+            "2": "1 Amp, 100 Health",
+            "3": "2 Amp, 200 Health",
+            "4": "3 Amp, 350 Health",
+            "5": "4 Amp, 00 Health"
+        }
+    },
+    "Bastion": {
+        "units": [
+            "Galio",
+            "Illaoi",
+            "Jax",
+            "Poppy",
+            "Renekton",
+            "Sejuani",
+            "Shyvana"
+        ],
+        "activations": {
+            "2": "18 Armor & MR",
+            "4": "50 Armor & MR",
+            "6": "90 Armor & MR Non-Bastions gain an additional 40 Armor & MR."
+        }
+    },
+    "Bruiser": {
+        "units": [
+            "Alistar",
+            "Chogath",
+            "Darius",
+            "Dr Mundo",
+            "Gragas",
+            "Kobuko",
+            "Mordekaiser"
+        ],
+        "activations": {
+            "2": "0% Health",
+            "4": "5% Health",
+            "6": "75% Health"
+        }
+    },
+    "Dynamo": {
+        "units": [
+            "Aurora",
+            "Elise",
+            "Jhin",
+            "Miss Fortune",
+            "Morgana"
+        ],
+        "activations": {
+            "2": "5 Mana",
+            "3": "8 Mana",
+            "4": "12 Mana"
+        }
+    },
+    "Executioner": {
+        "units": [
+            "Graves",
+            "Rengar",
+            "Urgot",
+            "Varus",
+            "Vex"
+        ],
+        "activations": {
+            "2": "5% Crit, 8% CritMult",
+            "3": "5% Crit, 15% CritMult",
+            "4": "5% Crit, 20% CritMult",
+            "5": "% Crit, 2% CritMult; also gain 1% Durability"
+        }
+    },
+    "Marksman": {
+        "units": [
+            "Aphelios",
+            "Jhin",
+            "Jinx",
+            "Kindred",
+            "Xayah"
+        ],
+        "activations": {
+            "2": "18% AD",
+            "4": "5% AD"
+        }
+    },
+    "Rapidfire": {
+        "units": [
+            "Draven",
+            "Kindred",
+            "Kogmaw",
+            "Twisted Fate",
+            "Zeri"
+        ],
+        "activations": {
+            "2": "4% AS per stack",
+            "4": "10% AS per stack",
+            "6": "22% AS per stack"
+        }
+    },
+    "Slayer": {
+        "units": [
+            "Dr Mundo",
+            "Jarvan IV",
+            "Senna",
+            "Shaco",
+            "Vayne",
+            "Zed"
+        ],
+        "activations": {
+            "2": "15% AD, 15% Omnivamp",
+            "4": "0% AD, 15% Omnivamp",
+            "6": "70% AD, 20% Omnivamp"
+        }
+    },
+    "Strategist": {
+        "units": [
+            "Ekko",
+            "Leblanc",
+            "Neeko",
+            "Yuumi",
+            "Ziggs"
+        ],
+        "activations": {
+            "2": "7% DA, 5% DR",
+            "3": "11% DA, 7% DR",
+            "4": "16% DA, 11% DR",
+            "5": "20% DA, 14% DR"
+        }
+    },
+    "Techie": {
+        "units": [
+            "Brand",
+            "Fiddlesticks",
+            "Mordekaiser",
+            "Seraphine",
+            "Shyvana",
+            "Veigar",
+            "Viego",
+            "Zyra"
+        ],
+        "activations": {
+            "2": "15 AP",
+            "4": "5 AP",
+            "6": "80 AP",
+            "8": "110 AP Enemies hit deal 1% less damage."
+        }
+    },
+    "Vanguard": {
+        "units": [
+            "Braum",
+            "Jarvan IV",
+            "Leona",
+            "Rhaast",
+            "Skarner",
+            "Sylas",
+            "Vi"
+        ],
+        "activations": {
+            "2": "16% max Health",
+            "4": "32% max Health",
+            "6": "40% max Health; 20% DR while Shielded"
+        }
+    }
+}

@@ -1,4 +1,7 @@
+import os
+import sys
 import tkinter as tk
+
 from tkinter import ttk
 from collections import defaultdict
 
@@ -318,11 +321,21 @@ class TraitsFilterApp:
         self.root.clipboard_append(clipboard_text)
         print("Selected results copied to clipboard.")
 
+# Function to dynamically get the file path
+def resource_path(relative_path):
+    """Get the file path for both packaged and development environments"""
+    if hasattr(sys, '_MEIPASS'):
+        # Packaged environment, files are in the temporary extraction directory
+        return os.path.join(sys._MEIPASS, relative_path)
+    else:
+        # Development environment, use relative path
+        return os.path.join(os.path.dirname(__file__), relative_path)
+    
 # Main Program
 if __name__ == "__main__":
-    combinations = file_processor.read_json("./var/traits_tracker_result_30000.json")
-    unit_costs = file_processor.read_json("./var/units_cost.json")
-    traits_data = file_processor.read_json("./var/traits_units_activations.json")
+    combinations = file_processor.read_json(resource_path("./etc/traits_tracker_result_30000.json"))
+    unit_costs = file_processor.read_json(resource_path("./etc/units_cost.json"))
+    traits_data = file_processor.read_json(resource_path("./etc/traits_units_activations.json"))
     root = tk.Tk()
     root.geometry("1000x800")
     app = TraitsFilterApp(root, combinations, unit_costs, traits_data)

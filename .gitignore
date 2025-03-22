@@ -29,6 +29,7 @@ var/**
 *.json
 *.html
 *.csv
+*.spec
 
 # temp
 pkg/**
