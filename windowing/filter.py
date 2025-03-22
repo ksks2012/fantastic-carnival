@@ -5,6 +5,16 @@ import tkinter as tk
 from tkinter import ttk
 from collections import defaultdict
 
+# Dynamically add the packaged module path
+if getattr(sys, 'frozen', False):
+    # In packaged environment, add the temporary extraction directory to sys.path
+    base_path = sys._MEIPASS
+    sys.path.append(os.path.join(base_path, 'language'))
+    sys.path.append(os.path.join(base_path, 'utils'))
+else:
+    # In development environment, use relative path
+    base_path = os.path.dirname(__file__)
+
 from language.en_zh_tw import unit_translation, ui_translations
 from utils import file_processor
 
@@ -321,16 +331,16 @@ class TraitsFilterApp:
         self.root.clipboard_append(clipboard_text)
         print("Selected results copied to clipboard.")
 
-# Function to dynamically get the file path
 def resource_path(relative_path):
     """Get the file path for both packaged and development environments"""
     if hasattr(sys, '_MEIPASS'):
-        # Packaged environment, files are in the temporary extraction directory
+        # Packaged environment
         return os.path.join(sys._MEIPASS, relative_path)
     else:
-        # Development environment, use relative path
-        return os.path.join(os.path.dirname(__file__), relative_path)
-    
+        # Development environment, calculate root directory
+        root_dir = os.path.dirname(os.path.dirname(__file__))
+        return os.path.join(root_dir, relative_path)
+        
 # Main Program
 if __name__ == "__main__":
     combinations = file_processor.read_json(resource_path("./etc/traits_tracker_result_30000.json"))

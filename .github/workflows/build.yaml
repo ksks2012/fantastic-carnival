@@ -6,6 +6,9 @@ on:
       - 'v*'  # Trigger only when pushing tags that start with 'v', such as v1.0, v2.1, etc.
   workflow_dispatch:  # Keep the option for manual triggering
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -27,7 +30,7 @@ jobs:
 
       - name: Build EXE with PyInstaller
         run: |
-          pyinstaller --onefile --name=TraitsTrackerFilter --add-data "etc;etc" windowing/filter.py
+          pyinstaller --onefile --name=TraitsTrackerFilter --add-data "etc;etc" --add-data "language;language" --add-data "utils;utils" windowing/filter.py
 
       - name: Upload EXE as artifact
         uses: actions/upload-artifact@v4
