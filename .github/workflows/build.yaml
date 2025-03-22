@@ -27,7 +27,7 @@ jobs:
 
       - name: Build EXE with PyInstaller
         run: |
-          pyinstaller --onefile --name=TraitsTrackerFilter --add-data="etc":"etc" windowing/filter.py
+          pyinstaller --onefile --name=TraitsTrackerFilter --add-data "etc;etc" windowing/filter.py
 
       - name: Upload EXE as artifact
         uses: actions/upload-artifact@v3
