@@ -63,3 +63,4 @@ This project is a Teamfight Tactics (TFT) Traits Tracker Calculator. It helps pl
 
 - By costs selector for searching
 - By traits selector for searching
+- Base on lv8, if you need a combination lv7, choose Garen or Zac and search
