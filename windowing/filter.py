@@ -91,19 +91,30 @@ class TraitsFilterApp:
 
     def _change_language(self, event):
         """Handle language change and refresh UI."""
-        self.language = self.lang_combo.get()
+        new_language = self.lang_combo.get()
+        
+        # Save the old selection state (based on current language)
+        old_check_states = {}
+        for unit, var in self.check_vars.items():
+            if self.language == "Chinese":
+                eng_unit = self.reverse_translation.get(unit, unit)
+            else:
+                eng_unit = unit
+            old_check_states[eng_unit] = var.get()
+        
+        # Update language and units
+        self.language = new_language
         self.translated_units = self._translate_units(self.all_units)
         
-        # Preserve checkbox states when switching languages
-        old_check_states = {self.reverse_translation.get(unit, unit) if self.language == "Chinese" else unit: 
-                           var.get() for unit, var in self.check_vars.items()}
-        
-        # Create new check variables with preserved states
+        # Rebuild check_vars based on the new language
         self.check_vars = {}
         for unit in self.translated_units:
-            eng_unit = self.reverse_translation.get(unit, unit) if self.language == "Chinese" else unit
+            if self.language == "Chinese":
+                eng_unit = self.reverse_translation.get(unit, unit)
+            else:
+                eng_unit = unit
             self.check_vars[unit] = tk.BooleanVar(value=old_check_states.get(eng_unit, False))
-            
+        
         self._refresh_ui()
 
     def _refresh_ui(self):
