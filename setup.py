@@ -11,7 +11,6 @@ setup(name="fantastic-carnival",
 		install_requires=[
 			"beautifulsoup4>=4.13.3,<4.14.0",
             "PyYaml >= 6.0, < 7.0",
-			"configparser>=7.2.0,<7.3.0"
 		],
 		entry_points={
 		},
