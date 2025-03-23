@@ -453,7 +453,7 @@ def resource_path(relative_path):
         
 # Main Program
 if __name__ == "__main__":
-    combinations = file_processor.read_json(resource_path("./etc/traits_tracker_result_30000.json"))
+    combinations = file_processor.read_json(resource_path("./etc/traits_tracker_result_40000.json"))
     unit_costs = file_processor.read_json(resource_path("./etc/units_cost.json"))
     traits_data = file_processor.read_json(resource_path("./etc/traits_units_activations.json"))
     
