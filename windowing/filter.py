@@ -29,6 +29,8 @@ class TraitsFilterApp:
         self.translation = unit_translation
         self.reverse_translation = {v: k for k, v in unit_translation.items()}
         self.filtered_results = []
+        self.mode = "8 Units"
+        self.default_unit = "Garen"
         
         # Preprocess combinations (more efficiently)
         self.combinations = [
@@ -55,7 +57,7 @@ class TraitsFilterApp:
         """Translate unit names based on current language."""
         if self.language == "English":
             return list(units)
-        else:  # Chinese
+        else:
             return [self.translation.get(unit, unit) for unit in units]
 
     def _translate_text(self, text):
@@ -65,6 +67,7 @@ class TraitsFilterApp:
     def _setup_ui(self):
         """Initialize the main UI components."""
         self._create_language_selector()
+        self._create_mode_selector()
         
         self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(fill="both", expand=True)
@@ -89,32 +92,31 @@ class TraitsFilterApp:
         self.lang_combo.pack(side="left")
         self.lang_combo.bind("<<ComboboxSelected>>", self._change_language)
 
+    def _create_mode_selector(self):
+        mode_frame = ttk.Frame(self.root)
+        mode_frame.pack(fill="x", pady=5)
+        ttk.Label(mode_frame, text="Mode:").pack(side="left", padx=5)
+        self.mode_combo = ttk.Combobox(mode_frame, values=["8 Units", "7 Units"], state="readonly")
+        self.mode_combo.set("8 Units")
+        self.mode_combo.pack(side="left")
+        self.mode_combo.bind("<<ComboboxSelected>>", self._change_mode)
+
+    def _change_mode(self, event):
+        self.mode = self.mode_combo.get()
+        self.update_selection()
+        self.show_results()
+
     def _change_language(self, event):
         """Handle language change and refresh UI."""
         new_language = self.lang_combo.get()
-        
-        # Save the old selection state (based on current language)
-        old_check_states = {}
-        for unit, var in self.check_vars.items():
-            if self.language == "Chinese":
-                eng_unit = self.reverse_translation.get(unit, unit)
-            else:
-                eng_unit = unit
-            old_check_states[eng_unit] = var.get()
-        
-        # Update language and units
+        old_check_states = {self.reverse_translation.get(unit, unit) if self.language == "Chinese" else unit: 
+                           var.get() for unit, var in self.check_vars.items()}
         self.language = new_language
         self.translated_units = self._translate_units(self.all_units)
-        
-        # Rebuild check_vars based on the new language
         self.check_vars = {}
         for unit in self.translated_units:
-            if self.language == "Chinese":
-                eng_unit = self.reverse_translation.get(unit, unit)
-            else:
-                eng_unit = unit
+            eng_unit = self.reverse_translation.get(unit, unit) if self.language == "Chinese" else unit
             self.check_vars[unit] = tk.BooleanVar(value=old_check_states.get(eng_unit, False))
-        
         self._refresh_ui()
 
     def _refresh_ui(self):
@@ -163,7 +165,7 @@ class TraitsFilterApp:
         # Sort by trait
         self._add_tab(self._translate_text("Trait Order"), self.translated_units, "trait")
         self._show_tab_content(self._translate_text("Alphabetical Order"))
-    
+
     def _update_treeview_headings(self):
         """Update treeview headings to current language."""
         self.result_tree.heading("Units", text=self._translate_text("Additional Units Needed"))
@@ -190,12 +192,7 @@ class TraitsFilterApp:
         self.canvas = tk.Canvas(self.content_frame)
         self.scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
-
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
-
+        self.scrollable_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         self.canvas.pack(side="left", fill="both", expand=True)
@@ -205,12 +202,9 @@ class TraitsFilterApp:
         self.tab_contents = {}
         self._add_tab(self._translate_text("Alphabetical Order"), sorted(self.translated_units), "none")
         self._add_tab(self._translate_text("Cost Order"), 
-                     sorted(self.translated_units, 
-                            key=lambda x: self.unit_costs[self.reverse_translation.get(x, x) 
-                                                        if self.language == "Chinese" else x]), 
-                     "cost")
+                     sorted(self.translated_units, key=lambda x: self.unit_costs[self.reverse_translation.get(x, x) 
+                                                        if self.language == "Chinese" else x]), "cost")
         self._add_tab(self._translate_text("Trait Order"), self.translated_units, "trait")
-
         self.unit_notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
         self._show_tab_content(self._translate_text("Alphabetical Order"))
 
@@ -363,7 +357,7 @@ class TraitsFilterApp:
         for unit in sorted(selected_translated):
             self.selected_listbox.insert(tk.END, unit)
         
-        self.status_var.set(f"{len(self.selected_units)} units selected")
+        self.status_var.set(f"{len(self.selected_units)} units selected (Mode: {self.mode})")
 
     def clear_selection(self):
         """Clear all selections and refresh the listbox."""
@@ -373,27 +367,39 @@ class TraitsFilterApp:
         self.selected_listbox.delete(0, tk.END)
         self.status_var.set("All selections cleared")
         self.result_tree.delete(*self.result_tree.get_children())
+        self.update_selection()
 
+    # Use mode for avoiding wrong cache
     @lru_cache(maxsize=128)
-    def _filter_combinations_cached(self, selected_units_tuple):
+    def _filter_combinations_cached(self, selected_units_tuple, mode=None):
         """Cached version of filter combinations for better performance."""
         selected_set = set(selected_units_tuple)
-        return [combo for combo in self.combinations if selected_set.issubset(combo["units"])]
+        if self.mode == "7 Units":
+            # 7 Units Mode: Add Garen and limit the number of additional units
+            selected_with_default = selected_set | {self.default_unit}
+            additional_needed = 8 - len(selected_with_default)  # Calculate the number of additional units needed
+            return [combo for combo in self.combinations 
+                    if selected_with_default.issubset(combo["units"]) 
+                    and len(combo["units"]) == 8 
+                    and len(combo["units"] - selected_with_default) == additional_needed 
+                    and combo["trait_count"] >= 8]
+        else:
+            # 8 Units Mode
+            return [combo for combo in self.combinations if selected_set.issubset(combo["units"])]
 
     def show_results(self):
         """Display filtered results in the Treeview, showing only additional units needed."""
         self.result_tree.delete(*self.result_tree.get_children())
         self.status_var.set("Filtering combinations...")
-        self.root.update()  # Update UI to show status change
+        self.root.update()
 
-        if not self.selected_units:
+        if not self.selected_units and self.mode == "8 Units":
             self.result_tree.insert("", "end", values=(self._translate_text("Please select at least one unit."), "", "", ""))
             self.status_var.set("Ready")
             return
 
-        # Use the cached filter function with an immutable key
         selected_units_tuple = tuple(sorted(self.selected_units))
-        self.filtered_results = self._filter_combinations_cached(selected_units_tuple)
+        self.filtered_results = self._filter_combinations_cached(selected_units_tuple, self.mode)
         
         if not self.filtered_results:
             self.result_tree.insert("", "end", values=(self._translate_text("No combinations found."), "", "", ""))
@@ -408,17 +414,21 @@ class TraitsFilterApp:
         self.result_tree.insert("", "end", 
                                values=(f"{self._translate_text('Found')} {result_count} {self._translate_text('combinations')}", "", "", ""))
 
-        # Show the top results (pagination could be added for large datasets)
         max_display = min(100, len(self.filtered_results))
         for i, combo in enumerate(self.filtered_results[:max_display], 1):
-            additional_units = set(combo["units"]) - self.selected_units
+            if self.mode == "7 Units":
+                additional_units = set(combo["units"]) - self.selected_units - {self.default_unit}
+                display_cost = combo["total_cost"] - self.unit_costs[self.default_unit]
+            else:
+                additional_units = set(combo["units"]) - self.selected_units
+                display_cost = combo["total_cost"]
             translated_additional = [self.translation.get(unit, unit) if self.language == "Chinese" else unit 
                                     for unit in additional_units]
             units_str = ", ".join(sorted(translated_additional)) if translated_additional else self._translate_text("None")
             traits_str = ", ".join(combo["activated_traits"])
-            self.result_tree.insert("", "end", values=(units_str, combo["total_cost"], combo["trait_count"], traits_str))
+            self.result_tree.insert("", "end", values=(units_str, display_cost, combo["trait_count"], traits_str))
 
-        self.status_var.set(f"Found {result_count} combinations, displaying {max_display}")
+        self.status_var.set(f"Found {result_count} combinations, displaying {max_display} (Mode: {self.mode})")
 
     def copy_selected_results(self):
         """Copy selected results from Treeview to clipboard."""
@@ -451,7 +461,6 @@ def resource_path(relative_path):
         root_dir = os.path.dirname(os.path.dirname(__file__))
         return os.path.join(root_dir, relative_path)
         
-# Main Program
 if __name__ == "__main__":
     combinations = file_processor.read_json(resource_path("./etc/traits_tracker_result_40000.json"))
     unit_costs = file_processor.read_json(resource_path("./etc/units_cost.json"))
