@@ -162,6 +162,43 @@ def extract_unlock_heroes(unlock_html_file='./var/tft_origins_unlock.html', orig
     return unlock_heroes
 
 
+def extract_unlock_heroes_costs(unlock_html_file='./var/tft_origins_unlock.html'):
+    """Extract unlock heroes and their costs from HTML file"""
+    
+    unlock_heroes_costs = {}
+    
+    try:
+        print(f"Extracting unlock heroes costs from {unlock_html_file}...")
+        
+        with open(unlock_html_file, 'r', encoding='utf-8') as file:
+            soup = BeautifulSoup(file, 'html.parser')
+        
+        # Find all hero cards using flexible selector
+        hero_cards = soup.find_all('div', class_=lambda x: x and 'rounded text-white1' in x and 'flex flex-col' in x)
+        
+        for card in hero_cards:
+            # Get hero name with cost
+            name_div = card.select_one('div[class*="font-montserrat"][class*="font-semibold"]')
+            if name_div:
+                name_with_cost = name_div.get_text().strip()
+                
+                # Extract cost from name (last digit)
+                cost_match = re.search(r'(\d+)$', name_with_cost)
+                if cost_match:
+                    cost = int(cost_match.group(1))
+                    # Remove cost from name
+                    hero_name = re.sub(r'\d+$', '', name_with_cost).strip()
+                    
+                    unlock_heroes_costs[hero_name] = cost
+        
+        print(f"Extracted {len(unlock_heroes_costs)} unlock heroes with costs")
+        return unlock_heroes_costs
+        
+    except Exception as e:
+        print(f"Error processing {unlock_html_file}: {e}")
+        return {}
+
+
 def main():
     html_file = './var/tft_origins.html'
     
@@ -174,8 +211,20 @@ def main():
         print("Units Cost Data:")
         print(json.dumps(units_cost_data, indent=4, ensure_ascii=False))
         
-        # Save units cost to JSON file
-        file_processor.write_json("./var/units_cost.json", units_cost_data)
+        # Extract unlock heroes costs and merge with standard units
+        unlock_heroes_costs = extract_unlock_heroes_costs()
+        
+        # Merge unlock costs with standard units costs
+        all_units_costs = units_cost_data.copy()
+        for hero, cost in unlock_heroes_costs.items():
+            if hero not in all_units_costs:
+                all_units_costs[hero] = cost
+            else:
+                print(f"Note: {hero} already exists in standard units with cost {all_units_costs[hero]}")
+        
+        # Save complete units cost to JSON file
+        file_processor.write_json("./var/units_cost.json", all_units_costs)
+        print(f"Saved {len(all_units_costs)} heroes costs (including {len(unlock_heroes_costs)} unlock heroes)")
         
         # Extract unlock heroes data from unlock-specific HTML file
         unlock_heroes_data = extract_unlock_heroes()
