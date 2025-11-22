@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import re
 
 from utils import file_processor
 
@@ -57,21 +58,24 @@ def parse_tft_origins(html_file):
     origins = {}
     
     # This appears to be a modern React app, so we need to extract data differently
-    # Look for character cards and their traits
-    character_cards = soup.find_all('div', class_='rounded text-white1 w-[291px] flex flex-col bg-bg')
+    # Look for character cards and their traits - use more flexible selector
+    character_cards = soup.find_all('div', class_=lambda x: x and 'rounded text-white1' in x and 'flex flex-col' in x)
     
     # Dictionary to store character to traits mapping
     character_traits = {}
     
     for card in character_cards:
         # Extract character name from the card
-        name_div = card.select_one('.font-montserrat.font-semibold')
+        name_div = card.select_one('div[class*="font-montserrat"][class*="font-semibold"]')
         if not name_div:
             continue
         
         character_name = name_div.text.strip()
         # Remove cost number if it exists
         character_name = character_name.split('\n')[0].strip()
+        # Clean name by removing cost digits at the end
+        import re
+        character_name = re.sub(r'\d+$', '', character_name).strip()
         
         # Extract traits from the card
         trait_imgs = card.select('img[alt*=" 0"]')  # Trait images have " 0" in alt text
@@ -96,6 +100,68 @@ def parse_tft_origins(html_file):
     
     return origins
 
+def extract_unlock_heroes(unlock_html_file='./var/tft_origins_unlock.html', origins_html_file='./var/tft_origins.html'):
+    """Extract heroes that need to be unlocked and their unlock conditions from both HTML files"""
+    
+    unlock_heroes = {}
+    
+    # Check both HTML files for unlock heroes
+    html_files = [unlock_html_file, origins_html_file]
+    
+    for html_file in html_files:
+        try:
+            print(f"Checking {html_file} for unlock heroes...")
+            
+            # Read HTML file
+            with open(html_file, 'r', encoding='utf-8') as file:
+                html_content = file.read()
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Find all hero cards - use flexible selector
+            hero_cards = soup.find_all('div', class_=lambda x: x and 'rounded text-white1' in x and 'flex flex-col' in x)
+            
+            file_unlock_count = 0
+            
+            for card in hero_cards:
+                # Get hero name - try multiple selectors
+                hero_name_element = card.find('div', class_='relative flex justify-between p-[9px] bg-bg text-[18px] font-montserrat font-semibold rounded-[3px] css-kuoeib')
+                if not hero_name_element:
+                    hero_name_element = card.select_one('div[class*="font-montserrat"][class*="font-semibold"]')
+                
+                if not hero_name_element:
+                    continue
+                    
+                hero_name = hero_name_element.get_text().strip()
+                # Remove cost digits
+                hero_name = re.sub(r'\d+$', '', hero_name).strip()
+                
+                # Look for unlock section
+                unlock_section = card.find('h4', class_='h4 mb-1', string='Unlock:')
+                if unlock_section:
+                    unlock_condition = unlock_section.find_next_sibling('div')
+                    if unlock_condition:
+                        condition_text = unlock_condition.get_text().strip()
+                        if hero_name not in unlock_heroes:  # Avoid duplicates
+                            unlock_heroes[hero_name] = condition_text
+                            file_unlock_count += 1
+            
+            print(f"Found {file_unlock_count} unlock heroes in {html_file}")
+            
+        except FileNotFoundError:
+            print(f"File {html_file} not found, skipping...")
+        except Exception as e:
+            print(f"Error processing {html_file}: {e}")
+    
+    print(f"Total found: {len(unlock_heroes)} unique unlock heroes")
+    
+    # Display all unlock heroes and conditions
+    for hero, condition in sorted(unlock_heroes.items()):
+        print(f"{hero}: {condition}")
+    
+    return unlock_heroes
+
+
 def main():
     html_file = './var/tft_origins.html'
     
@@ -110,6 +176,12 @@ def main():
         
         # Save units cost to JSON file
         file_processor.write_json("./var/units_cost.json", units_cost_data)
+        
+        # Extract unlock heroes data from unlock-specific HTML file
+        unlock_heroes_data = extract_unlock_heroes()
+        
+        # Save unlock heroes to JSON file
+        file_processor.write_json("./var/unlock_heroes.json", unlock_heroes_data)
         
         # Also extract origins data as before
         origins_data = parse_tft_origins(html_file)
