@@ -51,8 +51,9 @@ class UpdatedTraitsFilterApp:
             for combo in combinations_data.get("combinations", [])
         ]
         
-        # Get all unique units from combinations and costs
-        self.all_units = sorted(set().union(*(combo["units"] for combo in self.combinations)))
+        # Get all unique units from combinations and costs, filtered by regions
+        all_available_units = set().union(*(combo["units"] for combo in self.combinations))
+        self.all_units = self._filter_units_by_regions(all_available_units, traits_data)
         self.translated_units = self._translate_units(self.all_units)
         self.check_vars = {unit: tk.BooleanVar() for unit in self.translated_units}
 
@@ -65,6 +66,24 @@ class UpdatedTraitsFilterApp:
         # Bind keys for better user experience
         self.root.bind("<Control-f>", lambda e: self.show_results())
         self.root.bind("<Control-c>", lambda e: self.copy_selected_results())
+
+    def _filter_units_by_regions(self, available_units, traits_data):
+        """Filter units to only include those from specified regions."""
+        target_regions = [
+            'Bilgewater', 'Demacia', 'Freljord', 'Ionia', 'Ixtal',
+            'Noxus', 'Piltover', 'Shadow Isles', 'Shurima', 'Targon',
+            'Void', 'Yordle', 'Zaun'
+        ]
+        
+        valid_units = set()
+        for region in target_regions:
+            if region in traits_data:
+                region_units = traits_data[region].get('units', [])
+                for unit in region_units:
+                    if unit in available_units:
+                        valid_units.add(unit)
+        
+        return sorted(valid_units)
         
     def _preselect_required_units(self):
         """Pre-select required units from search parameters."""
@@ -279,14 +298,22 @@ class UpdatedTraitsFilterApp:
                 self._add_checkboxes_to_frame(frame, sorted(cost_groups[cost]))
         
         elif block_type == "trait":
-            # Organize by trait
+            # Organize by trait - only show target regions
+            target_regions = [
+                'Bilgewater', 'Demacia', 'Freljord', 'Ionia', 'Ixtal',
+                'Noxus', 'Piltover', 'Shadow Isles', 'Shurima', 'Targon',
+                'Void', 'Yordle', 'Zaun'
+            ]
+            
             trait_groups = defaultdict(list)
             for trait, info in self.traits_data.items():
-                trait_units = info.get("units", [])
-                for eng_unit in trait_units:
-                    unit = self.translation.get(eng_unit, eng_unit) if self.language == "Chinese" else eng_unit
-                    if unit in units:
-                        trait_groups[trait].append(unit)
+                # Only process traits that are in target regions
+                if trait in target_regions:
+                    trait_units = info.get("units", [])
+                    for eng_unit in trait_units:
+                        unit = self.translation.get(eng_unit, eng_unit) if self.language == "Chinese" else eng_unit
+                        if unit in units:
+                            trait_groups[trait].append(unit)
             
             for trait in sorted(trait_groups.keys()):
                 if trait_groups[trait]:  # Only show traits that have units
