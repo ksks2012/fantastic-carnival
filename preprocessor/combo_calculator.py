@@ -51,14 +51,14 @@ class TraitComboCalculatorOptimized:
             self.unit_region_coverage[unit] = sum(1 for t in traits if t in self.target_regions)
             self.unit_total_traits[unit] = len(traits)
         
-        # candidate pool: only units that have cost and contribute to regions or thresholds
+        # candidate pool: only units from target regions that have cost
         candidates = []
         for unit in self.unit_traits.keys():
             if unit not in self.units_costs:
                 continue
+            # only include units that belong to target regions
             contributes_region = any(t in self.target_regions for t in self.unit_traits[unit])
-            contributes_threshold = any(t in self.trait_thresholds for t in self.unit_traits[unit])
-            if contributes_region or contributes_threshold:
+            if contributes_region:
                 candidates.append(unit)
         # sort heuristically: more region coverage, more traits, lower cost
         candidates.sort(key=lambda u: (-self.unit_region_coverage.get(u,0), -self.unit_total_traits.get(u,0), self.units_costs.get(u,999)))
