@@ -61,7 +61,7 @@ class TraitComboCalculatorOptimized:
             if contributes_region:
                 candidates.append(unit)
         # sort heuristically: more region coverage, more traits, lower cost
-        candidates.sort(key=lambda u: (-self.unit_region_coverage.get(u,0), -self.unit_total_traits.get(u,0), self.units_costs.get(u,999)))
+        candidates.sort(key=lambda u: (self.units_costs.get(u,999), -self.unit_region_coverage.get(u,0), -self.unit_total_traits.get(u,0)))
         self.candidates = candidates
         
         print(f"Loaded {len(self.traits_data)} traits and {len(self.units_costs)} unit costs")
@@ -158,7 +158,7 @@ class TraitComboCalculatorOptimized:
                 if not activated_local:
                     return
                 region_count = self.count_activated_target_regions(activated_local)
-                if region_count >= 5 and backtrack_state['cost'] <= max_cost:
+                if region_count >= 4 and backtrack_state['cost'] <= max_cost:
                     combo = {
                         'units': chosen.copy(),
                         'trait_count': len(activated_local),
@@ -188,7 +188,7 @@ class TraitComboCalculatorOptimized:
                 
             possible_region_count = self.can_reach_more_regions(backtrack_state['counts'], start_idx, slots_needed, candidates)
             already_activated_regions = sum(1 for r in self.target_regions if backtrack_state['counts'].get(r, 0) >= 1 and r in self.trait_thresholds and any(th <= backtrack_state['counts'].get(r,0) for th in self.trait_thresholds.get(r,[])))
-            if possible_region_count < 5 and already_activated_regions < 5:
+            if possible_region_count < 4 and already_activated_regions < 4:
                 return
                 
             for i in range(start_idx, n):
@@ -246,7 +246,7 @@ def main():
     required_units = ['Xin Zhao', 'Poppy', 'Kennen']
     
     results = calc.run_and_save_all(
-        start_units=7, 
+        start_units=8, 
         max_units=8, 
         max_cost=50, 
         required_units=required_units
